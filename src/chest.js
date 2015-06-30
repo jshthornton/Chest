@@ -13,43 +13,55 @@
 
 	_.extend(Cls.prototype, {
 		constructor: function() {
-			this._trunk = {};
+			this._locks = {};
 		},
 
 		lock: function(key) {
-			this._trunk[key].locks++;
+			this._locks[key]++;
 		},
 
 		unlock: function(key) {
-			this._trunk[key].locks--;
+			this._locks[key]--;
 		},
 
-		findUnlocked: function() {
+		lockCount: function(key) {
+			if(_.has(this._locks, key)) {
+				return this._locks[key];
+			}
+
+			return false;
+		},
+
+		isLocked: function(key) {
+			var lockCount = this.lockCount(key);
+
+			if(_.isNumber(lockCount)) {
+				return lockCount <= 0;
+			}
+
+			return false;
+		},
+
+		findUnlocked: function(data) {
 			var keys = [];
 
-			_.forOwn(this._trunk, function(item, key) {
-				if(item.locks <= 0) {
+			_.forOwn(data, function(_item, key) {
+				if(this.isLocked(key) === false) {
 					keys.push(key);
 				}
-			});
+			}, this);
 
 			return keys;
 		},
 
-		pillage: function() {
+		pillage: function(data, adaptor) {
 			_.each(this.findUnlocked(), function(key) {
-				delete this._trunk[key];
+				if(_.isFunction(adaptor)) {
+					adaptor(key);
+				} else {
+					delete data[key];
+				}
 			}, this);
-		},
-
-		toArray: function() {
-			var items = [];
-
-			_.forOwn(this._trunk, function(item) {
-				items.push(item.obj);
-			});
-
-			return items;
 		}
 	});
 }));
